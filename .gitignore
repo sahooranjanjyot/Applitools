@@ -1,0 +1,9 @@
+target/
+venv/
+visual_baselines/
+visual_reports/
+locator_map.json
+claude_feedback.md
+.idea/
+*.iml
+.DS_Store
