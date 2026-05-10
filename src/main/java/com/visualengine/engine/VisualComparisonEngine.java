@@ -67,8 +67,13 @@ public class VisualComparisonEngine {
         Imgproc.cvtColor(baseline, grayBase, Imgproc.COLOR_BGR2GRAY);
         Imgproc.cvtColor(actual, grayActual, Imgproc.COLOR_BGR2GRAY);
 
-        // SSIM approximation using OpenCV matchTemplate or absdiff
-        // For strict SSIM, we would need a full implementation. Here we use SSIM equivalent or simple diff with MSE
+        // SSIM-like correlation comparison using TM_CCOEFF_NORMED
+        Mat resultMat = new Mat();
+        Imgproc.matchTemplate(grayActual, grayBase, resultMat, Imgproc.TM_CCOEFF_NORMED);
+        Core.MinMaxLocResult mmr = Core.minMaxLoc(resultMat);
+        double ssimScore = Math.max(0.0, mmr.maxVal); // Correlation score (1.0 = identical)
+
+        // Generate Diff highlighting for the report (fallback to absdiff for visual bounding boxes only)
         Mat diff = new Mat();
         Core.absdiff(grayBase, grayActual, diff);
         
@@ -80,24 +85,18 @@ public class VisualComparisonEngine {
         Imgproc.findContours(thresh, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
         Mat diffImage = actual.clone();
-        int diffPixels = 0;
         for (MatOfPoint contour : contours) {
             Rect rect = Imgproc.boundingRect(contour);
             if (rect.width > 5 && rect.height > 5) {
                 Imgproc.rectangle(diffImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 0, 255), 2);
-                diffPixels += rect.area();
             }
         }
 
         Imgcodecs.imwrite(diffOutputPath, diffImage);
 
-        // Calculate a pseudo-score (1.0 = perfect match)
-        double totalPixels = baseline.cols() * baseline.rows();
-        double score = 1.0 - (diffPixels / totalPixels);
-
         ComparisonResult result = new ComparisonResult();
-        result.score = score;
-        result.passed = score >= matchThreshold;
+        result.score = ssimScore;
+        result.passed = ssimScore >= matchThreshold;
 
         return result;
     }

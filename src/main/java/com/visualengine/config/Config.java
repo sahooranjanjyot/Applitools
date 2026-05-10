@@ -11,7 +11,6 @@ public class Config {
     public static final String LOCATOR_MAP_FILE = System.getProperty("user.dir") + "/locator_map.json";
     
     public static final double PIXEL_MATCH_THRESHOLD;
-    public static final String OPENAI_API_KEY;
 
     static {
         String modeStr = System.getenv("VISUAL_EXECUTION_MODE");
@@ -19,14 +18,18 @@ public class Config {
 
         String thresholdStr = System.getenv("PIXEL_MATCH_THRESHOLD");
         PIXEL_MATCH_THRESHOLD = (thresholdStr != null) ? Double.parseDouble(thresholdStr) : 0.98;
-
-        String apiKey = System.getenv("OPENAI_API_KEY");
-        OPENAI_API_KEY = (apiKey != null) ? apiKey : "";
     }
 
     public static String getBaselineDir(String viewport) {
         String branch = System.getenv("GIT_BRANCH") != null ? System.getenv("GIT_BRANCH") : "local";
         String dir = System.getProperty("user.dir") + "/visual_baselines/" + branch + "/" + viewport;
+        new File(dir).mkdirs();
+        return dir;
+    }
+
+    public static String getPendingBaselineDir(String viewport) {
+        String branch = System.getenv("GIT_BRANCH") != null ? System.getenv("GIT_BRANCH") : "local";
+        String dir = System.getProperty("user.dir") + "/pending_baselines/" + branch + "/" + viewport;
         new File(dir).mkdirs();
         return dir;
     }

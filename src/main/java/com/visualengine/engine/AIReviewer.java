@@ -13,9 +13,7 @@ public class AIReviewer {
     private final Gson gson = new Gson();
 
     public String classifyDiff(double score, Map<String, Integer> domDiff, Map<String, Object> metadata) {
-        if (Config.OPENAI_API_KEY.isEmpty()) {
-            return "Classification Unavailable (No API Key)";
-        }
+        // Proceeding with local LLM evaluation
 
         String prompt = String.format("You are an AI QA Reviewer.\nMetadata: %s\nScore: %f\nDOM Diff: %s\nClassify into exactly one: REAL_DEFECT, EXPECTED_CHANGE, LOCATOR_ISSUE, LAYOUT_SHIFT",
                 gson.toJson(metadata), score, gson.toJson(domDiff));
@@ -28,26 +26,29 @@ public class AIReviewer {
         messages.add(userMsg);
 
         JsonObject bodyObj = new JsonObject();
-        bodyObj.addProperty("model", "gpt-4o");
-        bodyObj.add("messages", messages);
-        bodyObj.addProperty("max_tokens", 10);
-        bodyObj.addProperty("temperature", 0.0);
+        bodyObj.addProperty("model", "llama3"); // Local model
+        bodyObj.addProperty("prompt", prompt);
+        bodyObj.addProperty("stream", false);
 
         RequestBody body = RequestBody.create(bodyObj.toString(), MediaType.get("application/json; charset=utf-8"));
         Request request = new Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer " + Config.OPENAI_API_KEY)
+                .url("http://localhost:11434/api/generate")
                 .post(body)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful() && response.body() != null) {
                 JsonObject jsonResponse = gson.fromJson(response.body().string(), JsonObject.class);
-                return jsonResponse.getAsJsonArray("choices").get(0).getAsJsonObject().getAsJsonObject("message").get("content").getAsString().trim();
+                String result = jsonResponse.get("response").getAsString().trim();
+                
+                if (result.contains("EXPECTED_CHANGE")) return "EXPECTED_CHANGE";
+                if (result.contains("LOCATOR_ISSUE")) return "LOCATOR_ISSUE";
+                if (result.contains("LAYOUT_SHIFT")) return "LAYOUT_SHIFT";
+                return "REAL_DEFECT";
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Local LLM not responding. Falling back to REAL_DEFECT.");
         }
-        return "UNKNOWN";
+        return "REAL_DEFECT";
     }
 }

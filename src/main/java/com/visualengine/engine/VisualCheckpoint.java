@@ -61,14 +61,29 @@ public class VisualCheckpoint {
         result.put("classification", "N/A");
 
         if (Config.MODE == Config.ExecutionMode.BASELINE) {
-            Files.copy(actualScreenshot.toPath(), new File(baseImgPath).toPath(), StandardCopyOption.REPLACE_EXISTING);
-            try (FileWriter fw = new FileWriter(baseDomPath)) { fw.write(actualDom); }
-            System.out.println("Baseline saved for " + pageName + " at " + baselineDir);
+            String pendingDir = Config.getPendingBaselineDir(viewport);
+            String pendingImgPath = pendingDir + "/" + pageName + ".png";
+            String pendingDomPath = pendingDir + "/" + pageName + ".html";
+            
+            Files.copy(actualScreenshot.toPath(), new File(pendingImgPath).toPath(), StandardCopyOption.REPLACE_EXISTING);
+            try (FileWriter fw = new FileWriter(pendingDomPath)) { fw.write(actualDom); }
+            System.out.println("Pending baseline saved for " + pageName + " at " + pendingDir + " (Needs Approval)");
+            
+            result.put("classification", "PENDING_APPROVAL");
+            result.put("passed", true);
             appendResult(result);
             return true;
         } else if (Config.MODE == Config.ExecutionMode.COMPARE) {
             if (!new File(baseImgPath).exists()) {
-                throw new RuntimeException("Baseline missing for " + pageName);
+                System.out.println("Baseline missing for " + pageName + ". Auto-generating a pending baseline.");
+                String pendingDir = Config.getPendingBaselineDir(viewport);
+                String pendingImgPath = pendingDir + "/" + pageName + ".png";
+                Files.copy(actualScreenshot.toPath(), new File(pendingImgPath).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                
+                result.put("classification", "MISSING_BASELINE");
+                result.put("passed", false);
+                appendResult(result);
+                return false;
             }
 
             VisualComparisonEngine.ComparisonResult compRes = engine.compareImages(baseImgPath, actualImgPath, diffImgPath, ignoreRegions);

@@ -44,14 +44,23 @@ public class Reporter {
                 .append(passed ? "PASS" : "FAIL").append("</span></p>")
                 .append("<p>Classification: ").append(res.get("classification")).append("</p>");
 
-            html.append("<div class='row'>")
-                .append("<div class='col'><h3>Baseline</h3><img src='file://").append(res.get("baseline_img")).append("'></div>");
-            
+            html.append("<div class='row'>");
+            try {
+                String base64Baseline = encodeFileToBase64((String) res.get("baseline_img"));
+                html.append("<div class='col'><h3>Baseline</h3><img src='data:image/png;base64,").append(base64Baseline).append("'></div>");
+            } catch (Exception e) {}
+
             if (res.containsKey("actual_img")) {
-                html.append("<div class='col'><h3>Actual</h3><img src='file://").append(res.get("actual_img")).append("'></div>");
+                try {
+                    String base64Actual = encodeFileToBase64((String) res.get("actual_img"));
+                    html.append("<div class='col'><h3>Actual</h3><img src='data:image/png;base64,").append(base64Actual).append("'></div>");
+                } catch (Exception e) {}
             }
             if (res.containsKey("diff_img") && res.get("diff_img") != null) {
-                html.append("<div class='col'><h3>Diff</h3><img src='file://").append(res.get("diff_img")).append("'></div>");
+                try {
+                    String base64Diff = encodeFileToBase64((String) res.get("diff_img"));
+                    html.append("<div class='col'><h3>Diff</h3><img src='data:image/png;base64,").append(base64Diff).append("'></div>");
+                } catch (Exception e) {}
             }
             html.append("</div><hr>");
         }
@@ -64,5 +73,11 @@ public class Reporter {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static String encodeFileToBase64(String filePath) throws IOException {
+        if (filePath == null || !new File(filePath).exists()) return "";
+        byte[] fileContent = java.nio.file.Files.readAllBytes(new File(filePath).toPath());
+        return java.util.Base64.getEncoder().encodeToString(fileContent);
     }
 }
