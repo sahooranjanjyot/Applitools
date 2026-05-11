@@ -13,3 +13,8 @@ Feature: Visual Validation Engine Test
   Scenario: Negative Visual Validation (Deliberate Failure)
     Given I navigate to "https://www.wikipedia.org"
     Then the page should visually match baseline "example_domain"
+
+  Scenario: Self-Healing Element Detection
+    Given I navigate to "https://www.wikipedia.org"
+    # The real search box is id="searchInput". We will use id="searchInput-broken" to trigger the healer!
+    And I try to click a broken element "searchInput-broken"

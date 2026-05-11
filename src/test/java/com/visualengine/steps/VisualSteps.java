@@ -18,6 +18,9 @@ import org.junit.Assert;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
+import com.visualengine.engine.healing.HealingDriverFactory;
+import org.openqa.selenium.By;
+
 public class VisualSteps {
     private WebDriver driver;
     private VisualCheckpoint checkpoint;
@@ -28,13 +31,21 @@ public class VisualSteps {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new");
         options.addArguments("--window-size=1920,1080");
-        driver = new ChromeDriver(options);
+        WebDriver originalDriver = new ChromeDriver(options);
+        driver = HealingDriverFactory.create(originalDriver); // Wrap with Self-Healing AI Proxy
         checkpoint = new VisualCheckpoint();
     }
 
     @Given("I navigate to {string}")
     public void i_navigate_to(String url) {
         driver.get(url);
+    }
+
+    @Given("I try to click a broken element {string}")
+    public void i_try_to_click(String brokenId) {
+        // This element does not exist. It should trigger the NoSuchElementException
+        // which will be caught by the HealingInvocationHandler!
+        driver.findElement(By.id(brokenId)).click();
     }
 
     @Then("the page should visually match baseline {string}")
