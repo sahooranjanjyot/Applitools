@@ -9,3 +9,7 @@ Feature: Visual Validation Engine Test
     Then the page should visually match baseline "example_domain" ignoring regions
       | x | y | w | h |
       | 0 | 0 | 100| 50|
+
+  Scenario: Negative Visual Validation (Deliberate Failure)
+    Given I navigate to "https://www.wikipedia.org"
+    Then the page should visually match baseline "example_domain"
